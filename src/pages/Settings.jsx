@@ -97,7 +97,15 @@ const Settings = ({ currentUser, onLogout }) => {
                       <span className="order-id">{order.orderId || order.id}</span>
                       <span className="status delivered"><FiCheckCircle style={{marginRight: '5px'}}/> {order.status}</span>
                     </div>
-                    <div className="order-date-row">Placed on: {new Date(order.date).toLocaleDateString()}</div>
+                    
+                    <div className="order-date-row" style={{ display: 'flex', justifyContent: 'space-between', color: '#666', fontSize: '0.9rem', marginBottom: '15px' }}>
+                      <span>Placed on: {new Date(order.date).toLocaleDateString()}</span>
+                      {order.estimatedDelivery && (
+                        <span style={{color: '#27ae60', fontWeight: 'bold'}}>
+                           ⏱️ Est. Arrival: {order.estimatedDelivery}
+                        </span>
+                      )}
+                    </div>
                     
                     <div className="order-items-list">
                       {order.items.map((item, i) => (

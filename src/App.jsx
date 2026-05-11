@@ -171,6 +171,47 @@ function App() {
     navigate('/login');
   };
 
+  const handlePlaceOrder = async (finalTotal, estimatedDelivery) => {
+    if (!currentUser) return;
+    
+    const orderTotal = finalTotal || cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser._id || currentUser.email, 
+          items: cart,
+          total: orderTotal,
+          paymentMethod: 'cod',
+          estimatedDelivery: estimatedDelivery 
+        })
+      });
+
+      if (response.ok) {
+        const savedOrder = await response.json(); 
+
+        const updatedUser = { 
+          ...currentUser, 
+          history: [savedOrder, ...(currentUser.history || [])], 
+          cart: [] 
+        };
+        
+        localStorage.setItem('activeUser', JSON.stringify(updatedUser));
+        setCurrentUser(updatedUser);
+        setCart([]);
+
+        console.log("Order saved to MongoDB successfully!");
+      } else {
+        alert("Failed to save order to the database.");
+      }
+    } catch (error) {
+      console.error("Error connecting to backend:", error);
+      alert("Server error. Please make sure your Node.js backend is running!");
+    }
+  };
+
   return (
     <div className="app-wrapper">
       <nav className="navbar">
@@ -224,10 +265,7 @@ function App() {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/menu" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><Menu products={productsData} addToCart={addToCart} cart={cart} updateQuantity={updateQuantity} searchQuery={searchQuery} favorites={favorites} toggleFavorite={toggleFavorite} /></ProtectedRoute> } />
           <Route path="/cart" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><CartWrapper cart={cart} updateQuantity={updateQuantity} /></ProtectedRoute> } />
-          
-          {/* REMOVED onPlaceOrder PROP HERE */}
-          <Route path="/checkout" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><Checkout cart={cart} /></ProtectedRoute> } />
-          
+          <Route path="/checkout" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><Checkout cart={cart} onPlaceOrder={handlePlaceOrder} /></ProtectedRoute> } />
           <Route path="/order-tracking" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><OrderTracking /></ProtectedRoute> } />
           <Route path="/settings" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><Settings currentUser={currentUser} onLogout={handleLogout} /></ProtectedRoute> } />
           <Route path="/favorites" element={ <ProtectedRoute isLoggedIn={isLoggedIn}><Favorites favorites={favorites} products={productsData} toggleFavorite={toggleFavorite} addToCart={addToCart} /></ProtectedRoute> } />
@@ -250,7 +288,7 @@ const CartWrapper = ({ cart, updateQuantity }) => {
   return <Cart cartItems={cart} updateQuantity={updateQuantity} onCheckout={() => navigate('/checkout')} />;
 };
 
-// --- UPDATED HOME COMPONENT (Dark Hero + Feature Strip) ---
+// --- UPDATED HOME COMPONENT ---
 const Home = ({ navigate }) => {
   const [activeProcess, setActiveProcess] = useState(null);
 
@@ -260,39 +298,52 @@ const Home = ({ navigate }) => {
     e.target.reset();
   };
 
+  // --- 1. ADDED IMAGES TO THE PROCESS DATA ---
   const processes = [
-    { icon: "🍒", title: "Harvesting", detail: "It all begins on the high-altitude slopes..." },
-    { icon: "☀️", title: "Processing", detail: "Once the cherries are harvested..." },
-    { icon: "🔥", title: "Roasting", detail: "Green coffee beans smell grassy..." },
-    { icon: "☕", title: "Brewing", detail: "The final step of the journey..." }
+    { 
+        icon: "🍒", 
+        title: "Harvesting", 
+        detail: "It all begins on the high-altitude slopes where our expert farmers hand-pick only the ripest, deepest red coffee cherries. This careful selection ensures the natural sweetness and complex flavor notes are captured right from the source before washing.",
+        img: "https://images.unsplash.com/photo-1524414287096-c7fb74abe3eb?q=80&w=600"
+    },
+    { 
+        icon: "☀️", 
+        title: "Processing", 
+        detail: "Once harvested, the cherries are washed and sun-dried using traditional eco-friendly methods. This careful process safely removes the outer fruit while allowing the inner beans to naturally ferment, locking in their unique regional characteristics.",
+        img: "https://images.unsplash.com/photo-1518057111178-44a106bad636?q=80&w=600"
+    },
+    { 
+        icon: "🔥", 
+        title: "Roasting", 
+        detail: "Our master roasters apply the perfect balance of heat and timing to transform the green beans. Roasted in small, closely monitored batches, we coax out the rich aromas, natural oils, and bold flavors tailored exactly to each specific blend.",
+        img: "https://images.unsplash.com/photo-1611162458324-aae1eb4129a4?q=80&w=600"
+    },
+    { 
+        icon: "☕", 
+        title: "Brewing", 
+        detail: "The final step of the journey is in your cup. Using precise temperature control and optimal extraction methods, the freshly roasted beans are brewed to perfection, delivering a smooth, rich, and unforgettable coffee experience straight to you.",
+        img: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=600"
+    }
   ];
 
   return (
     <div>
-      {/* --- NEW MODERN HERO SECTION (Dark Theme) --- */}
       <div className="modern-hero">
         <div className="hero-content-wrapper">
-            
-            {/* Left Image (Beans/Grinder) */}
             <div className="hero-image-side left">
                 <img src="https://images.unsplash.com/photo-1509042239860-f550ce710b93" alt="Coffee Beans" />
             </div>
-
-            {/* Center Text */}
             <div className="hero-text-center">
                 <h1>The best quality coffee beans for the best coffee brew</h1>
                 <p>Experience the rich aroma and distinct taste of our premium artisanal coffee, roasted to perfection just for you.</p>
                 <button className="hero-btn-modern" onClick={() => navigate('/menu')}>Order Now</button>
             </div>
-
-            {/* Right Image (Coffee Cup) */}
             <div className="hero-image-side right">
                 <img src="https://images.unsplash.com/photo-1511920170033-f8396924c348" alt="Coffee Cup" />
             </div>
         </div>
       </div>
 
-      {/* --- FEATURED PRODUCT STRIP --- */}
       <div className="featured-strip">
         <div className="featured-header">
             <h3>Popular Products</h3>
@@ -323,11 +374,8 @@ const Home = ({ navigate }) => {
         </div>
       </div>
 
-      {/* --- NEW MODERN PROCESS TIMELINE --- */}
       <div className="modern-process-section">
         <div className="container">
-            
-            {/* Header Area */}
             <div className="process-header-row">
                 <div className="process-header-text">
                     <span className="process-tag">The Journey</span>
@@ -337,14 +385,11 @@ const Home = ({ navigate }) => {
                 </div>
             </div>
 
-            {/* Timeline Area */}
             <div className="timeline-wrapper">
-                {/* SVG Curve Line */}
                 <svg className="timeline-svg" viewBox="0 0 1000 200" preserveAspectRatio="none">
                     <path d="M0,150 C200,150 250,50 500,50 C750,50 800,150 1000,150" fill="none" stroke="#f36f21" strokeWidth="3" strokeDasharray="10 5" />
                 </svg>
 
-                {/* Timeline Steps */}
                 <div className="timeline-steps-container">
                     {processes.map((proc, index) => (
                         <div 
@@ -367,15 +412,54 @@ const Home = ({ navigate }) => {
         </div>
       </div>
       
+      {/* --- 2. THE NEW SLEEK DARK MODAL --- */}
       {activeProcess && (
-        <div className="modal-overlay" onClick={() => setActiveProcess(null)}>
-           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <button className="close-modal" onClick={() => setActiveProcess(null)}><FiX /></button>
-              <div style={{fontSize: '4rem', marginBottom:'10px'}}>{activeProcess.icon}</div>
-              <h2 style={{color: '#4b3621'}}>{activeProcess.title}</h2>
-              <div style={{textAlign: 'left', marginTop: '20px', paddingRight: '10px'}}>
-                  <p>{activeProcess.detail}</p>
+        <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+            padding: '20px'
+        }} onClick={() => setActiveProcess(null)}>
+           
+           <div style={{
+               display: 'flex', backgroundColor: '#212121', color: '#f1f1f1',
+               borderRadius: '16px', overflow: 'hidden', maxWidth: '850px', width: '100%',
+               boxShadow: '0 20px 50px rgba(0,0,0,0.7)', position: 'relative',
+               flexDirection: window.innerWidth < 768 ? 'column' : 'row' // Responsive switch
+           }} onClick={(e) => e.stopPropagation()}>
+              
+              <button onClick={() => setActiveProcess(null)} style={{
+                  position: 'absolute', top: '15px', right: '15px', background: 'rgba(255,255,255,0.15)',
+                  border: 'none', color: 'white', borderRadius: '50%', width: '35px', height: '35px',
+                  cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10
+              }}>
+                  <FiX size={20} />
+              </button>
+
+              {/* Left Image Side */}
+              <div style={{ flex: '1', minHeight: '300px' }}>
+                  <img src={activeProcess.img} alt={activeProcess.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
+
+              {/* Right Text Side */}
+              <div style={{ flex: '1.2', padding: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '10px' }}>{activeProcess.icon}</div>
+                  
+                  <h2 style={{ fontSize: '2.2rem', marginBottom: '15px', borderBottom: '2px solid #c29545', paddingBottom: '10px', display: 'inline-block', width: 'max-content' }}>
+                      {activeProcess.title}
+                  </h2>
+                  
+                  <p style={{ fontSize: '1.1rem', lineHeight: '1.7', color: '#b3b3b3' }}>
+                      {activeProcess.detail}
+                  </p>
+                  
+                  <div style={{ marginTop: '30px' }}>
+                      <button onClick={() => setActiveProcess(null)} style={{
+                          background: '#c29545', color: 'white', border: 'none', padding: '12px 25px',
+                          borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold'
+                      }}>Close Preview</button>
+                  </div>
+              </div>
+
            </div>
         </div>
       )}
@@ -396,15 +480,12 @@ const Home = ({ navigate }) => {
         </div>
       </div>
 
-      {/* --- MODERN FEEDBACK SECTION (Dark Blue Theme) --- */}
       <div className="modern-feedback-section">
         <div className="feedback-header">
             <h2>We Value Your Feedback</h2>
         </div>
         
         <div className="feedback-content-wrapper">
-            
-            {/* Column 1: Opening Hours & Contact */}
             <div className="feedback-info-col">
                 <h3>OPENING HOURS</h3>
                 <p>Tues - Thurs: 9am - 5pm</p>
@@ -414,12 +495,10 @@ const Home = ({ navigate }) => {
                 <a href="mailto:contacts@coffeeapp.com" className="feedback-email">contacts@coffeeapp.com</a>
             </div>
 
-            {/* Column 2: Architectural Image */}
             <div className="feedback-image-col">
                 <img src="https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=400&auto=format&fit=crop" alt="Cafe Architecture" />
             </div>
 
-            {/* Column 3: The Form */}
             <div className="feedback-form-col">
                 <form onSubmit={handleHomeFeedback}>
                     <input type="text" placeholder="Name" required />
@@ -428,7 +507,6 @@ const Home = ({ navigate }) => {
                     <button type="submit" className="feedback-submit-link">Submit</button>
                 </form>
             </div>
-
         </div>
       </div>
 
