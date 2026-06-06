@@ -177,7 +177,8 @@ function App() {
     const orderTotal = finalTotal || cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toFixed(2);
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      // --- FIXED: Updated to live Render URL (REPLACE WITH YOUR ACTUAL URL!) ---
+      const response = await fetch('https://YOUR-RENDER-APP-NAME.onrender.com/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

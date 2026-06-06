@@ -15,17 +15,16 @@ const Settings = ({ currentUser, onLogout }) => {
 
   // --- NEW: Fetch Orders from Backend ---
   useEffect(() => {
-    // Only fetch if we are on the 'orders' tab and the user is logged in
     if (activeTab === 'orders' && currentUser) {
       const fetchOrders = async () => {
-        // Use MongoDB _id if it exists, otherwise fallback to email
         const userId = currentUser._id || currentUser.email; 
         
         try {
-          const response = await fetch(`http://localhost:5000/api/orders/${userId}`);
+          // --- FIXED: Updated to live Render URL (REPLACE WITH YOUR ACTUAL URL!) ---
+          const response = await fetch(`https://YOUR-RENDER-APP-NAME.onrender.com/api/orders/${userId}`);
           if (response.ok) {
             const data = await response.json();
-            setOrderHistory(data); // Save database orders to state
+            setOrderHistory(data); 
           }
         } catch (error) {
           console.error("Error fetching orders from backend:", error);
@@ -34,8 +33,8 @@ const Settings = ({ currentUser, onLogout }) => {
 
       fetchOrders();
     }
-  }, [currentUser, activeTab]); // Runs whenever the tab or user changes
-
+  }, [currentUser, activeTab]);
+  
   const handleAiSubmit = (e) => {
     e.preventDefault();
     if (!aiMessage.trim()) return;
